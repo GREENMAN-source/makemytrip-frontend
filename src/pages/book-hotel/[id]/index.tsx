@@ -59,11 +59,12 @@ fetch(`https://makemytrip-backend-030l.onrender.com/hotel/${id}`)
     };
 
     try {
-      const response = await fetch("http://localhost:8080/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingData)
-      });
+// Change this line:
+const response = await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(bookingData)
+});
 
       if (response.ok) {
         alert("Booking Successful!");
