@@ -87,7 +87,8 @@ export default function ReviewSystem({ targetId, targetName }: { targetId?: stri
     localStorage.setItem(`reviews_${safeTargetId}`, JSON.stringify(updatedReviews));
 
     try {
-      await fetch("http://localhost:8080/api/reviews", {
+      // FIX: Changed localhost:8080 to the Render URL
+      await fetch("https://makemytrip-backend-030l.onrender.com/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newReview)
