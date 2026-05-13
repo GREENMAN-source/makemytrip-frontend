@@ -27,7 +27,7 @@ export default function ReviewSystem({ targetId, targetName }: { targetId?: stri
 
       // 2. Try fetching from real Database
       try {
-        const safeUrl = `http://localhost:8080/api/reviews/${encodeURIComponent(safeTargetId)}`;
+        const safeUrl = `https://makemytrip-backend-030l.onrender.com/api/reviews/${encodeURIComponent(safeTargetId)}`;
         const res = await fetch(safeUrl);
         
         if (res.ok) {
