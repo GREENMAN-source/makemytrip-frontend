@@ -14,9 +14,8 @@ export default function BookHotel() {
   useEffect(() => {
     if (!id) return; 
 
-    // Fetches from the /hotel/ doorway
-   // Change Line 18 to this:
-fetch(`https://makemytrip-backend-030l.onrender.com/hotel/${id}`) 
+    // Fetches hotel data from Render
+    fetch(`https://makemytrip-backend-030l.onrender.com/hotel/${id}`) 
       .then((res) => {
           if(!res.ok) throw new Error("Network response was not ok");
           return res.json();
@@ -59,12 +58,12 @@ fetch(`https://makemytrip-backend-030l.onrender.com/hotel/${id}`)
     };
 
     try {
-// Change this line:
-const response = await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(bookingData)
-});
+      // Sends booking data to Render
+      const response = await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData)
+      });
 
       if (response.ok) {
         alert("Booking Successful!");
@@ -74,7 +73,7 @@ const response = await fetch("https://makemytrip-backend-030l.onrender.com/api/b
       }
     } catch (error) {
       console.error("Booking error:", error);
-      alert("Server error. Check your Spring Boot terminal.");
+      alert("Server error. Check your Render logs.");
     } finally {
       setIsBooking(false);
     }
