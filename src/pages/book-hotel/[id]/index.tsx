@@ -15,7 +15,8 @@ export default function BookHotel() {
     if (!id) return; 
 
     // Fetches from the /hotel/ doorway
-    fetch(`http://localhost:8080/hotel/${id}`) 
+   // Change Line 18 to this:
+fetch(`https://makemytrip-backend-030l.onrender.com/hotel/${id}`) 
       .then((res) => {
           if(!res.ok) throw new Error("Network response was not ok");
           return res.json();
