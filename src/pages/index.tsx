@@ -41,7 +41,7 @@ export default function Home() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [reviewTarget, setReviewTarget] = useState<{id: string, name: string} | null>(null);
 
-  // --- SMART MOCK DATA (Matches Dropdown) ---
+  // --- SMART MOCK DATA ---
   const defaultFlights = [
     { id: "mock-f1", flightName: "Air India AI-202", from: "Delhi, NCR", to: "Mumbai, Maharashtra", departureTime: "2026-05-15T10:00:00", price: 5000 },
     { id: "mock-f2", flightName: "IndiGo 6E-405", from: "Mumbai, Maharashtra", to: "Bangalore, Karnataka", departureTime: "2026-05-16T14:30:00", price: 4500 },
@@ -96,20 +96,44 @@ export default function Home() {
     const searchTo = to.toLowerCase().split(',')[0].trim();
 
     if (bookingtype === "flights") {
-      const results = (flight.length > 0 ? flight : defaultFlights).filter(f => 
+      let results = (flight.length > 0 ? flight : defaultFlights).filter(f => 
         (from === "" || f.from.toLowerCase().includes(searchFrom)) && 
         (to === "" || f.to.toLowerCase().includes(searchTo))
       ).map(f => ({
         id: f.id, title: `Flight: ${f.flightName}`, subtitle: `${f.from} ➔ ${f.to}`, price: f.price, type: 'FLIGHT'
       }));
+
+      // 🌟 MAGIC TRICK: Generate custom flight if none exist
+      if (results.length === 0 && from !== "" && to !== "") {
+        results = [{
+          id: `custom-flight-${Math.random()}`,
+          title: `Flight: MakeMyTour Express`,
+          subtitle: `${from} ➔ ${to}`,
+          price: Math.floor(Math.random() * 4000) + 3500, // Random realistic price
+          type: 'FLIGHT'
+        }];
+      }
       setsearchresult(results);
+
     } else if (bookingtype === "hotels") {
-      const results = (hotel.length > 0 ? hotel : defaultHotels).filter(h => 
+      let results = (hotel.length > 0 ? hotel : defaultHotels).filter(h => 
         (to === "" || h.location.toLowerCase().includes(searchTo))
       ).map(h => ({
         id: h.id, title: h.hotelName, subtitle: `Location: ${h.location}`, price: h.pricePerNight, type: 'HOTEL'
       }));
+
+      // 🌟 MAGIC TRICK: Generate custom hotel if none exist
+      if (results.length === 0 && to !== "") {
+        results = [{
+          id: `custom-hotel-${Math.random()}`,
+          title: `${to.split(',')[0] || to} Premium Suites`,
+          subtitle: `Location: ${to}`,
+          price: Math.floor(Math.random() * 6000) + 2000,
+          type: 'HOTEL'
+        }];
+      }
       setsearchresult(results);
+
     } else {
       setsearchresult(extraCategories[bookingtype] || []);
     }
@@ -129,16 +153,15 @@ export default function Home() {
 
   const handlePayment = async () => {
     const bookingData = {
-      userId: user?.id || "user123",
+      userId: user?.id || "user-123",
       serviceType: selectedTrip.type || "OTHER",
-      targetName: selectedTrip.title,
+      targetName: selectedTrip.title + " (" + selectedTrip.subtitle + ")", // Now saves full custom route
       totalAmount: finalPrice,
       selectionId: finalSelection || "Standard",
       refundStatus: "ACTIVE"
     };
 
     try {
-      // FIXED: Changed localhost:8080 to the Render URL
       await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bookingData)
       });
