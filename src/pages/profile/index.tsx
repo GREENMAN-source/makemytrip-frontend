@@ -14,12 +14,15 @@ export default function MasterDashboard() {
 
   useEffect(() => {
     const fetchMyTrips = async () => {
-      const userId = user?.id || "user123"; 
+      // 1. ENSURE THIS MATCHES: Use the same ID logic as your booking pages
+      const userId = user?.id || "user-123"; 
       try {
-        const res = await fetch(`http://localhost:8080/api/bookings/user/${userId}`);
+        // FIXED: Changed localhost:8080 to the Render URL
+        const res = await fetch(`https://makemytrip-backend-030l.onrender.com/api/bookings/user/${userId}`);
         if (res.ok) {
           const data = await res.json();
-          const sortedData = data.sort((a: any, b: any) => b.createdAt - a.createdAt);
+          // Sort by newest first (assuming createdAt is a timestamp or ISO string)
+          const sortedData = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setTrips(sortedData); 
           generateRecommendation(sortedData);
         }
@@ -35,15 +38,13 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
-  // --- TASK 6: 100% REAL PERSONALIZED RECOMMENDATION ENGINE ---
   const generateRecommendation = (userTrips: any[]) => {
     if (userTrips.length === 0) {
       setRecommendation({ title: "Goa Beach Resort", reason: "Popular among new users for a perfect first getaway!" });
       return;
     }
     
-    // Read their most recent trip to personalize the suggestion
-    const latestTripName = userTrips[0].targetName.toLowerCase();
+    const latestTripName = userTrips[0].targetName?.toLowerCase() || "";
     
     if (latestTripName.includes("mumbai") || latestTripName.includes("goa") || latestTripName.includes("beach")) {
       setRecommendation({ title: "Bali Ocean Villa", reason: "Based on your recent coastal trips and beach stays." });
@@ -63,7 +64,8 @@ export default function MasterDashboard() {
     const refundAmount = (tripToCancel.totalAmount * 0.5).toFixed(0);
 
     try {
-      await fetch(`http://localhost:8080/api/bookings/cancel/${showCancel}?reason=User Cancelled`, { method: "POST" });
+      // FIXED: Changed localhost:8080 to the Render URL
+      await fetch(`https://makemytrip-backend-030l.onrender.com/api/bookings/cancel/${showCancel}?reason=User Cancelled`, { method: "POST" });
       setTrips(trips.map(t => t.id === showCancel ? { ...t, refundStatus: `₹${refundAmount} REFUND INITIATED` } : t));
       setShowCancel(null);
       alert(`Cancellation successful. A 50% refund of ₹${refundAmount} has been initiated.`);
@@ -90,7 +92,6 @@ export default function MasterDashboard() {
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           
-          {/* DYNAMIC RECOMMENDATION CARD */}
           <div className="p-6 bg-blue-900 rounded-[32px] text-white relative overflow-hidden group shadow-md transition-all">
             <Star className="absolute -right-4 -top-4 opacity-10" size={150}/>
             <h2 className="text-xl font-bold">Suggested: {recommendation.title}</h2>
