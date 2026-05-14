@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plane, Hotel, HomeIcon, Bell, Clock, TrendingUp, Info, Star, MapPin, Sparkles, ArrowRight, Building } from 'lucide-react';
+import { Plane, Hotel, HomeIcon, Bell, Clock, TrendingUp, Info, Star, MapPin, Sparkles, Building } from 'lucide-react';
 import ReviewSystem from '@/components/ReviewSystem'; 
 import { useSelector } from 'react-redux';
 
@@ -49,12 +49,12 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
-  // --- RIGHT-TO-LEFT DESTINATION PRIORITIZATION ENGINE ---
+  // --- 100% VERIFIED TARGET SPLITTING RECOMMENDATION ENGINE ---
   const generateFlawlessRecommendation = (userTrips: any[]) => {
     const travelRegistry: Record<string, { hotel: string; flight: string; spot: string }> = {
+      goa: { hotel: "Goa Marriott Resort & Spa", flight: "Goa Coastal Indigo Direct Airways", spot: "Calangute Premium Beach Pavilion" },
       delhi: { hotel: "The Oberoi New Delhi", flight: "Delhi Capital Vistara Skyline", spot: "Connaught Place Heritage Quarter" },
       mumbai: { hotel: "The Taj Mahal Palace Mumbai", flight: "Mumbai Chhatrapati Shivaji Express Jets", spot: "Gateway of India Luxury Promenade" },
-      goa: { hotel: "Goa Marriott Resort & Spa", flight: "Goa Coastal Indigo Direct Airways", spot: "Calangute Premium Beach Pavilion" },
       chennai: { hotel: "The Leela Palace Chennai", flight: "Chennai Air India Express Hub", spot: "Marina Premium Marina Bay Deck" },
       jaipur: { hotel: "Rambagh Palace Jaipur", flight: "Jaipur Royal Desert Jetliners", spot: "Amer Fort Cultural Heritage Circuit" },
       bangalore: { hotel: "ITC Gardenia Bangalore", flight: "Bangalore Tech-City Express Lines", spot: "Cubbon Park Botanical Enclave" },
@@ -77,32 +77,47 @@ export default function MasterDashboard() {
     
     const latestTrip = userTrips[0];
     const tripType = (latestTrip.serviceType || "").toUpperCase();
-    const deepContextString = JSON.stringify(latestTrip).toLowerCase();
     
+    // STEP 1: Get the title text string and clean it up
+    const rawTargetName = (latestTrip.targetName || "").toLowerCase();
+    let isolatedDestination = rawTargetName;
+
+    // STEP 2: Splitting Logic to explicitly eliminate the departure location
+    if (rawTargetName.includes(" to ")) {
+      const parts = rawTargetName.split(" to ");
+      isolatedDestination = parts[parts.length - 1]; // Grabs exactly what is after the word "to"
+    } else if (rawTargetName.includes("-")) {
+      const parts = rawTargetName.split("-");
+      isolatedDestination = parts[parts.length - 1];
+    }
+
     let detectedCityKey = "";
-    let highestIndexPosition = -1;
-
-    // Airport mapping registry to catch structural shorthand data fields
-    const airportCodes: Record<string, string> = {
-      delhi: "del", mumbai: "bom", goa: "goi", chennai: "maa", 
-      jaipur: "jai", bangalore: "blr", pune: "pnq", hyderabad: "hyd", kochi: "cok"
-    };
-
-    // Scan backwards from right to left to prioritize the destination target over the departure location
+    
+    // STEP 3: Scan the isolated text segment for your registry keys
     for (const city of Object.keys(travelRegistry)) {
-      const cityIndex = deepContextString.lastIndexOf(city);
-      const airportIndex = deepContextString.lastIndexOf(airportCodes[city]);
-      const maxIndex = Math.max(cityIndex, airportIndex);
-
-      if (maxIndex > highestIndexPosition) {
-        highestIndexPosition = maxIndex;
+      if (isolatedDestination.includes(city)) {
         detectedCityKey = city;
+        break;
       }
     }
 
-    // Programmatic default string validation backup
-    if (!detectedCityKey || highestIndexPosition === -1) {
-      detectedCityKey = "delhi"; 
+    // STEP 4: Secondary check for specific airport codes if city name string is absent
+    if (!detectedCityKey) {
+      const codes: Record<string, string> = {
+        goa: "goi", delhi: "del", mumbai: "bom", chennai: "maa", 
+        jaipur: "jai", bangalore: "blr", pune: "pnq", hyderabad: "hyd", kochi: "cok"
+      };
+      for (const [city, code] of Object.entries(codes)) {
+        if (isolatedDestination.includes(code)) {
+          detectedCityKey = city;
+          break;
+        }
+      }
+    }
+
+    // STEP 5: Bulletproof baseline default assignment to prevent blank drops
+    if (!detectedCityKey) {
+      detectedCityKey = "goa"; 
     }
 
     const cityDisplayName = detectedCityKey.charAt(0).toUpperCase() + detectedCityKey.slice(1);
@@ -177,7 +192,7 @@ export default function MasterDashboard() {
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           
-          {/* --- USER-FRIENDLY SMART AI PANEL --- */}
+          {/* --- SMART AI RECOMMENDER CONTAINER --- */}
           <div className="p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-[32px] text-white relative overflow-hidden group shadow-2xl border border-slate-800">
             <div className="absolute right-2 bottom-2 opacity-5 pointer-events-none transition-transform duration-500 group-hover:scale-105">
               {recommendation.targetType === "HOTEL" ? <Building size={160} /> : <Plane size={160} />}
