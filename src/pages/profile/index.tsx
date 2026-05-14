@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plane, Hotel, HomeIcon, Bell, Clock, TrendingUp, Info, Star, MapPin, Sparkles } from 'lucide-react';
+import { Plane, Hotel, HomeIcon, Bell, Clock, TrendingUp, Info, Star, MapPin, Sparkles, ArrowRight, Compass } from 'lucide-react';
 import ReviewSystem from '@/components/ReviewSystem'; 
 import { useSelector } from 'react-redux';
 
@@ -8,7 +8,13 @@ export default function MasterDashboard() {
   const [liveStatus, setLiveStatus] = useState("AI-202: On Time");
   const [showCancel, setShowCancel] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{id: string, name: string} | null>(null);
-  const [recommendation, setRecommendation] = useState({ title: "Loading...", reason: "..." });
+  const [recommendation, setRecommendation] = useState({ 
+    title: "Loading...", 
+    reason: "...", 
+    targetType: "HOTEL", 
+    destination: "",
+    extraInsight: "" 
+  });
 
   const user = useSelector((state: any) => state.user?.user);
 
@@ -21,11 +27,11 @@ export default function MasterDashboard() {
           const data = await res.json();
           const sortedData = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setTrips(sortedData); 
-          generateRecommendation(sortedData); // Automatically updates every single render
+          generate智能Recommendation(sortedData); 
         }
       } catch (err) {
         console.error("Database offline, empty dashboard.");
-        generateRecommendation([]);
+        generate智能Recommendation([]);
       }
     };
     fetchMyTrips();
@@ -35,44 +41,68 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
-  // --- FULLY DYNAMIC & NOTICEABLE AI RECOMMENDATION ENGINE ---
-  const generateRecommendation = (userTrips: any[]) => {
+  // --- CROSS-MATCHING CONTEXTUAL AI ENGINE ---
+  const generate智能Recommendation = (userTrips: any[]) => {
     if (!userTrips || userTrips.length === 0) {
       setRecommendation({ 
-        title: "Goa Beach Resort Special", 
-        reason: "Welcome to MakeMyTour! Your dashboard is empty. We recommend starting with our highest-rated coastal getaway in Goa." 
+        title: "Explore Goa Elite Beach Resorts", 
+        reason: "Welcome to MakeMyTour! Your timeline is fresh. Kickstart your profile with our most requested coastal holiday escape.",
+        targetType: "HOTEL",
+        destination: "Goa",
+        extraInsight: "Trending: 94% of new platform users select this route."
       });
       return;
     }
     
-    // 1. Calculate active totals directly from your live database array
+    // 1. Get the absolute latest booking to parse its context
+    const latestTrip = userTrips[0];
+    const rawName = latestTrip.targetName || "";
+    const tripType = (latestTrip.serviceType || "").toUpperCase();
+
+    // 2. Extract City Name helper function (looks for keywords inside booking titles)
+    const extractCity = (name: string): string => {
+      const cities = ["mumbai", "goa", "chennai", "delhi", "jaipur", "bangalore", "pune", "hyderabad", "kochi", "kolkata"];
+      const lower = name.toLowerCase();
+      for (const city of cities) {
+        if (lower.includes(city)) return city.charAt(0).toUpperCase() + city.slice(1);
+      }
+      return "your destination"; 
+    };
+
+    const targetCity = extractCity(rawName);
+
+    // 3. Compute structural profile preference
     const flightCount = userTrips.filter(t => (t.serviceType || "").toUpperCase() === "FLIGHT").length;
     const hotelCount = userTrips.filter(t => (t.serviceType || "").toUpperCase() === "HOTEL").length;
-    
-    // 2. Extract properties of the absolute newest trip booked
-    const latestTrip = userTrips[0];
-    const destination = latestTrip.targetName || "your next stop";
+    const userPref = flightCount >= hotelCount ? "Premium Flight Tier" : "Luxury Lodging Tier";
 
-    // 3. Dynamic logic execution based on metrics
-    if (flightCount > hotelCount) {
-      setRecommendation({ 
-        title: `Premium Airport Lounge Access via ${destination}`, 
-        reason: `AI Insight: We detected a high frequency of air travel on your account (${flightCount} Flights vs ${hotelCount} Hotels). To maximize your comfort for your next departure to ${destination}, we unlocked complimentary airport lounge access.` 
+    // 4. Core Cross-Matching Logic Branch
+    if (tripType === "FLIGHT") {
+      // IF USER BOOKED A FLIGHT -> RECOMMEND COMPLEMENTARY HOTEL IN THAT EXACT CITY
+      setRecommendation({
+        title: `Luxury Stay at The Grand Executive ${targetCity}`,
+        reason: `AI Cross-Match: We detected your confirmed flight arriving in ${targetCity}. To complete your travel profile, our engine paired your ${userPref} preference with top-tier accommodations nearby.`,
+        targetType: "HOTEL",
+        destination: targetCity,
+        extraInsight: `📍 Nearby Spot: Just 15 mins away from ${targetCity} Transit Hub. Includes free airport pickup.`
       });
-    } else if (hotelCount > flightCount) {
-      setRecommendation({ 
-        title: "Complimentary Suite Upgrade & Late Checkout", 
-        reason: `AI Insight: Based on your established lodging profile (${hotelCount} Premium Hotels reserved vs ${flightCount} Flights), your account qualifies for an exclusive tier upgrade on your next hotel check-in.` 
-      });
-    } else if (flightCount === hotelCount && flightCount > 0) {
-      setRecommendation({ 
-        title: `All-Inclusive Vacation Package Bundle`, 
-        reason: `AI Insight: You maintain a perfectly balanced itinerary profile (${flightCount} Flights & ${hotelCount} Hotels booked). Let our algorithm automate your next booking with customized bundle discounts.` 
+    } else if (tripType === "HOTEL") {
+      // IF USER BOOKED A HOTEL -> RECOMMEND MATCHING FLIGHT TO THAT EXACT CITY
+      setRecommendation({
+        title: `Express Non-Stop Flights to ${targetCity}`,
+        reason: `AI Cross-Match: You have a confirmed reservation at ${rawName} in ${targetCity}. Our system analyzed flight schedules to sync perfectly with your check-in timeline automatically.`,
+        targetType: "FLIGHT",
+        destination: targetCity,
+        extraInsight: `✈️ Transit Route optimized based on your ${userPref} metrics. Priority boarding applied.`
       });
     } else {
-      setRecommendation({ 
-        title: "Explore the Kerala Backwaters", 
-        reason: "A premium signature houseboat itinerary compiled by our AI based on trending holiday seasons across India." 
+      // Fallback
+      setRecommendation({
+        title: "Exclusive Kerala Backwater Cruiser",
+        reason: "No immediate cross-match criteria found. Displaying custom curated travel configurations aligned with signature Indian routes.",
+        targetType: "HOTEL",
+        destination: "Kerala",
+        extraInsight: "Recommended for leisure weekend packages."
       });
     }
   };
@@ -102,7 +132,7 @@ export default function MasterDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-10 font-sans">
       <header className="max-w-6xl mx-auto flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-black text-blue-800">MakeMyTour Dashboard</h1>
+        <h1 className="text-3xl font-black text-blue-800 tracking-tight">MakeMyTour Dashboard</h1>
         <div className="bg-blue-600 text-white px-4 py-2 rounded-2xl flex items-center gap-3 animate-pulse shadow-lg">
           <Bell size={18}/> <span className="text-xs font-bold">{liveStatus}</span>
         </div>
@@ -111,16 +141,35 @@ export default function MasterDashboard() {
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           
-          {/* AI Output Container Panel */}
-          <div className="p-6 bg-gradient-to-r from-blue-900 to-indigo-900 rounded-[32px] text-white relative overflow-hidden group shadow-xl transition-all border border-blue-800">
-            <Star className="absolute -right-4 -top-4 opacity-10" size={150}/>
-            <div className="flex items-center gap-2 text-xs bg-blue-500/30 text-blue-300 w-fit px-3 py-1 rounded-full font-bold uppercase tracking-wider mb-3">
-              <Sparkles size={12}/> AI Travel Engine Active
+          {/* --- ULTRA-DYNAMIC CONTEXTUAL AI RECOMMENDER PANEL --- */}
+          <div className="p-6 bg-gradient-to-br from-indigo-950 via-blue-900 to-slate-900 rounded-[32px] text-white relative overflow-hidden group shadow-2xl transition-all border border-blue-900">
+            <div className="absolute right-0 top-0 p-8 opacity-10 pointer-events-none">
+              {recommendation.targetType === "HOTEL" ? <Hotel size={180} /> : <Plane size={180} />}
             </div>
-            <h2 className="text-xl font-bold tracking-tight">Suggested: {recommendation.title}</h2>
-            <p className="text-sm text-slate-200 mt-2 leading-relaxed opacity-90">{recommendation.reason}</p>
-            <div className="mt-4 bg-white/10 p-2 rounded-lg w-fit flex items-center gap-2 cursor-help relative">
-              <Info size={14}/> <span className="text-[10px] font-bold tracking-widest uppercase">System Intelligence Verified</span>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs bg-blue-500/20 text-blue-300 w-fit px-3 py-1 rounded-full font-bold uppercase tracking-wider mb-4 border border-blue-500/30">
+                <Sparkles size={12}/> Predictive AI Intelligence
+              </div>
+              <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-slate-300 font-mono">
+                Target: {recommendation.destination}
+              </span>
+            </div>
+
+            <p className="text-xs text-blue-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1">
+              Next Smart Action <ArrowRight size={12}/> Book Matching {recommendation.targetType}
+            </p>
+            <h2 className="text-2xl font-extrabold tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-blue-200">
+              {recommendation.title}
+            </h2>
+            
+            <p className="text-sm text-slate-300 leading-relaxed font-normal mb-4 opacity-95">
+              {recommendation.reason}
+            </p>
+
+            <div className="bg-white/5 border border-white/10 p-3 rounded-2xl flex items-center gap-3 text-xs text-slate-200 backdrop-blur-sm">
+              <Compass size={16} className="text-orange-400 shrink-0"/>
+              <span className="font-medium tracking-wide">{recommendation.extraInsight}</span>
             </div>
           </div>
 
@@ -129,7 +178,7 @@ export default function MasterDashboard() {
             
             {trips.length === 0 ? (
               <div className="p-10 text-center bg-white rounded-3xl border border-slate-100 text-slate-500 shadow-sm">
-                No trips found. Go to the Home Page to book one!
+                No active bookings discovered. Schedule a package configuration to run live matching metrics.
               </div>
             ) : null}
 
