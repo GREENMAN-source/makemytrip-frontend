@@ -28,7 +28,6 @@ export default function MasterDashboard() {
         if (res.ok) {
           const data = await res.json();
           
-          // Bulletproof millisecond/ISO unified sorting engine
           const parseTimeToMs = (val: any) => {
             if (!val) return 0;
             return isNaN(Number(val)) ? new Date(val).getTime() : Number(val);
@@ -50,13 +49,13 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
-  // --- CONTEXTUAL ENGINE DESIGNED TO MATCH FLIGHTS AND HOTELS SEXTUPLY VERIFIED ---
+  // --- RIGHT-TO-LEFT DESTINATION PRIORITIZATION ENGINE ---
   const generateFlawlessRecommendation = (userTrips: any[]) => {
     const travelRegistry: Record<string, { hotel: string; flight: string; spot: string }> = {
+      delhi: { hotel: "The Oberoi New Delhi", flight: "Delhi Capital Vistara Skyline", spot: "Connaught Place Heritage Quarter" },
       mumbai: { hotel: "The Taj Mahal Palace Mumbai", flight: "Mumbai Chhatrapati Shivaji Express Jets", spot: "Gateway of India Luxury Promenade" },
       goa: { hotel: "Goa Marriott Resort & Spa", flight: "Goa Coastal Indigo Direct Airways", spot: "Calangute Premium Beach Pavilion" },
       chennai: { hotel: "The Leela Palace Chennai", flight: "Chennai Air India Express Hub", spot: "Marina Premium Marina Bay Deck" },
-      delhi: { hotel: "The Oberoi New Delhi", flight: "Delhi Capital Vistara Skyline", spot: "Connaught Place Heritage Quarter" },
       jaipur: { hotel: "Rambagh Palace Jaipur", flight: "Jaipur Royal Desert Jetliners", spot: "Amer Fort Cultural Heritage Circuit" },
       bangalore: { hotel: "ITC Gardenia Bangalore", flight: "Bangalore Tech-City Express Lines", spot: "Cubbon Park Botanical Enclave" },
       pune: { hotel: "JW Marriott Hotel Pune", flight: "Pune Deccan Air Connect", spot: "Shaniwar Wada Historical Walkways" },
@@ -78,25 +77,32 @@ export default function MasterDashboard() {
     
     const latestTrip = userTrips[0];
     const tripType = (latestTrip.serviceType || "").toUpperCase();
-
-    // Universal multi-variable string compiler to catch matching fragments safely
     const deepContextString = JSON.stringify(latestTrip).toLowerCase();
-    let detectedCityKey = "";
     
-    if (deepContextString.includes("mumbai") || deepContextString.includes("bom")) detectedCityKey = "mumbai";
-    else if (deepContextString.includes("goa") || deepContextString.includes("goi")) detectedCityKey = "goa";
-    else if (deepContextString.includes("chennai") || deepContextString.includes("maa")) detectedCityKey = "chennai";
-    else if (deepContextString.includes("delhi") || deepContextString.includes("del")) detectedCityKey = "delhi";
-    else if (deepContextString.includes("jaipur") || deepContextString.includes("jai")) detectedCityKey = "jaipur";
-    else if (deepContextString.includes("bangalore") || deepContextString.includes("blr") || deepContextString.includes("bengaluru")) detectedCityKey = "bangalore";
-    else if (deepContextString.includes("pune") || deepContextString.includes("pnq")) detectedCityKey = "pune";
-    else if (deepContextString.includes("hyderabad") || deepContextString.includes("hyd")) detectedCityKey = "hyderabad";
-    else if (deepContextString.includes("kochi") || deepContextString.includes("cok")) detectedCityKey = "kochi";
+    let detectedCityKey = "";
+    let highestIndexPosition = -1;
 
-    // Modulo cycle loop safeguards matching integrity if strings are blank
-    if (!detectedCityKey) {
-      const fallbackKeys = Object.keys(travelRegistry);
-      detectedCityKey = fallbackKeys[userTrips.length % fallbackKeys.length];
+    // Airport mapping registry to catch structural shorthand data fields
+    const airportCodes: Record<string, string> = {
+      delhi: "del", mumbai: "bom", goa: "goi", chennai: "maa", 
+      jaipur: "jai", bangalore: "blr", pune: "pnq", hyderabad: "hyd", kochi: "cok"
+    };
+
+    // Scan backwards from right to left to prioritize the destination target over the departure location
+    for (const city of Object.keys(travelRegistry)) {
+      const cityIndex = deepContextString.lastIndexOf(city);
+      const airportIndex = deepContextString.lastIndexOf(airportCodes[city]);
+      const maxIndex = Math.max(cityIndex, airportIndex);
+
+      if (maxIndex > highestIndexPosition) {
+        highestIndexPosition = maxIndex;
+        detectedCityKey = city;
+      }
+    }
+
+    // Programmatic default string validation backup
+    if (!detectedCityKey || highestIndexPosition === -1) {
+      detectedCityKey = "delhi"; 
     }
 
     const cityDisplayName = detectedCityKey.charAt(0).toUpperCase() + detectedCityKey.slice(1);
@@ -171,7 +177,7 @@ export default function MasterDashboard() {
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           
-          {/* --- SMART CONTEXTUAL MATCHING PANEL --- */}
+          {/* --- USER-FRIENDLY SMART AI PANEL --- */}
           <div className="p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-[32px] text-white relative overflow-hidden group shadow-2xl border border-slate-800">
             <div className="absolute right-2 bottom-2 opacity-5 pointer-events-none transition-transform duration-500 group-hover:scale-105">
               {recommendation.targetType === "HOTEL" ? <Building size={160} /> : <Plane size={160} />}
