@@ -14,17 +14,16 @@ export default function MasterDashboard() {
 
   useEffect(() => {
     const fetchMyTrips = async () => {
-      // 1. ENSURE THIS MATCHES: Use the same ID logic as your booking pages
+      // 1. Matches your booking user ID
       const userId = user?.id || "user-123"; 
       try {
-        // FIXED: Changed localhost:8080 to the Render URL
+        // 2. Fetches from LIVE Render database
         const res = await fetch(`https://makemytrip-backend-030l.onrender.com/api/bookings/user/${userId}`);
         if (res.ok) {
           const data = await res.json();
-          // Sort by newest first (assuming createdAt is a timestamp or ISO string)
           const sortedData = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setTrips(sortedData); 
-          generateRecommendation(sortedData);
+          generateRecommendation(sortedData); // Triggers AI Engine
         }
       } catch (err) {
         console.error("Database offline, empty dashboard.");
@@ -38,22 +37,52 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
+  // --- UPGRADED AI RECOMMENDATION ENGINE ---
   const generateRecommendation = (userTrips: any[]) => {
-    if (userTrips.length === 0) {
-      setRecommendation({ title: "Goa Beach Resort", reason: "Popular among new users for a perfect first getaway!" });
+    if (!userTrips || userTrips.length === 0) {
+      setRecommendation({ 
+        title: "Goa Beach Resort", 
+        reason: "Popular among new users for a perfect first getaway!" 
+      });
       return;
     }
     
-    const latestTripName = userTrips[0].targetName?.toLowerCase() || "";
+    // Reads most recent trip safely
+    const latestTrip = userTrips[0];
+    const tripName = (latestTrip.targetName || "").toLowerCase();
+    const tripType = (latestTrip.serviceType || "").toUpperCase();
     
-    if (latestTripName.includes("mumbai") || latestTripName.includes("goa") || latestTripName.includes("beach")) {
-      setRecommendation({ title: "Bali Ocean Villa", reason: "Based on your recent coastal trips and beach stays." });
-    } else if (latestTripName.includes("delhi") || latestTripName.includes("taj")) {
-      setRecommendation({ title: "Jaipur Heritage Stay", reason: "Since you like historical and cultural destinations!" });
-    } else if (latestTripName.includes("flight")) {
-      setRecommendation({ title: "Premium Airport Lounge Access", reason: "Based on your frequent flight bookings." });
+    // Smart Keyword Matching
+    if (tripName.includes("mumbai") || tripName.includes("goa") || tripName.includes("chennai") || tripName.includes("kochi")) {
+      setRecommendation({ 
+        title: "Bali Ocean Villa", 
+        reason: "Based on your recent coastal trips, we think you'll love this tropical escape." 
+      });
+    } else if (tripName.includes("delhi") || tripName.includes("jaipur") || tripName.includes("taj")) {
+      setRecommendation({ 
+        title: "Udaipur Heritage Stay", 
+        reason: "Since you like historical and cultural destinations, this is a perfect match!" 
+      });
+    } else if (tripName.includes("bangalore") || tripName.includes("pune") || tripName.includes("hyderabad")) {
+      setRecommendation({ 
+        title: "Coorg Nature Retreat", 
+        reason: "A quiet nature escape, perfect for getting away from the busy tech cities." 
+      });
+    } else if (tripType === "FLIGHT") {
+      setRecommendation({ 
+        title: "Premium Airport Lounge Access", 
+        reason: "Based on your frequent flight bookings, travel in comfort next time!" 
+      });
+    } else if (tripType === "HOTEL") {
+      setRecommendation({ 
+        title: "Free Spa & Wellness Upgrade", 
+        reason: "Since you book hotels frequently, here is a premium relaxation add-on." 
+      });
     } else {
-      setRecommendation({ title: "Kerala Backwaters", reason: "A highly-rated serene escape matching your travel profile." });
+      setRecommendation({ 
+        title: "Kerala Backwaters Houseboat", 
+        reason: "A highly-rated serene escape matching your overall travel profile." 
+      });
     }
   };
 
@@ -64,7 +93,7 @@ export default function MasterDashboard() {
     const refundAmount = (tripToCancel.totalAmount * 0.5).toFixed(0);
 
     try {
-      // FIXED: Changed localhost:8080 to the Render URL
+      // Fetches from LIVE Render database for cancellation
       await fetch(`https://makemytrip-backend-030l.onrender.com/api/bookings/cancel/${showCancel}?reason=User Cancelled`, { method: "POST" });
       setTrips(trips.map(t => t.id === showCancel ? { ...t, refundStatus: `₹${refundAmount} REFUND INITIATED` } : t));
       setShowCancel(null);
