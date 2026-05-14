@@ -138,7 +138,8 @@ export default function Home() {
     };
 
     try {
-      await fetch("http://localhost:8080/api/bookings", {
+      // FIXED: Changed localhost:8080 to the Render URL
+      await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bookingData)
       });
       alert(`Payment Successful!`);
