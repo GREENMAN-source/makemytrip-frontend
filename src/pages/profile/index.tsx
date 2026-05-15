@@ -66,7 +66,7 @@ export default function MasterDashboard() {
     return () => clearInterval(interval);
   }, [user]); 
 
-  // --- AI ENGINE LOGIC ---
+  // --- FOOLPROOF AI ENGINE LOGIC ---
   const generateFlawlessRecommendation = (userTrips: Trip[]) => {
     const travelRegistry: Record<string, { hotel: string; flight: string; spot: string }> = {
       goa: { hotel: "Goa Marriott Resort & Spa", flight: "Goa Coastal Indigo Direct Airways", spot: "Calangute Premium Beach Pavilion" },
@@ -95,36 +95,37 @@ export default function MasterDashboard() {
     
     const latestTrip = userTrips[0];
     const tripType = (latestTrip.serviceType || "").toUpperCase();
-    
     const rawTargetName = (latestTrip.targetName || "").toLowerCase();
-    let isolatedDestination = rawTargetName;
-
-    // STEP 1: STRICT SPLITTING (Forces it to look ONLY at the right side of the arrow/dash)
-    if (rawTargetName.includes(" -> ")) {
-      isolatedDestination = rawTargetName.split(" -> ").pop() || isolatedDestination;
-    } else if (rawTargetName.includes("->")) {
-      isolatedDestination = rawTargetName.split("->").pop() || isolatedDestination;
-    } else if (rawTargetName.includes(" to ")) {
-      isolatedDestination = rawTargetName.split(" to ").pop() || isolatedDestination;
-    } else if (rawTargetName.includes("-")) {
-      isolatedDestination = rawTargetName.split("-").pop() || isolatedDestination;
-    }
-
-    // Clean up any extra spaces or brackets
-    isolatedDestination = isolatedDestination.trim().replace(/[\(\)]/g, '');
-
+    
+    // SCANNER ALGORITHM: Find ALL cities mentioned and pick the one closest to the END.
     let detectedCityKey = "";
+    let highestIndex = -1;
+
     for (const city of Object.keys(travelRegistry)) {
-      // STEP 2: ONLY check the isolated destination. Ignore the full string so "From" address is ignored!
-      if (isolatedDestination.includes(city)) {
+      const foundIndex = rawTargetName.lastIndexOf(city);
+      if (foundIndex > highestIndex) {
+        highestIndex = foundIndex;
         detectedCityKey = city;
-        break;
       }
     }
 
-    const displayCityName = detectedCityKey 
-      ? detectedCityKey.charAt(0).toUpperCase() + detectedCityKey.slice(1) 
-      : isolatedDestination.charAt(0).toUpperCase() + isolatedDestination.slice(1);
+    // Fallback logic if NO known city is found
+    let displayCityName = "";
+    if (detectedCityKey) {
+       displayCityName = detectedCityKey.charAt(0).toUpperCase() + detectedCityKey.slice(1);
+    } else {
+       let fallbackStr = rawTargetName;
+       if (fallbackStr.includes("->")) {
+           fallbackStr = fallbackStr.split("->").pop() || fallbackStr;
+       } else if (fallbackStr.includes("-")) {
+           fallbackStr = fallbackStr.split("-").pop() || fallbackStr;
+       } else if (fallbackStr.includes(" to ")) {
+           fallbackStr = fallbackStr.split(" to ").pop() || fallbackStr;
+       }
+       
+       fallbackStr = fallbackStr.replace(/[\(\)]/g, '').split(',')[0].trim();
+       displayCityName = fallbackStr ? fallbackStr.charAt(0).toUpperCase() + fallbackStr.slice(1) : "Your Destination";
+    }
 
     if (tripType === "FLIGHT") {
       setRecommendation({
