@@ -99,17 +99,24 @@ export default function MasterDashboard() {
     const rawTargetName = (latestTrip.targetName || "").toLowerCase();
     let isolatedDestination = rawTargetName;
 
-    if (rawTargetName.includes(" to ")) {
-      const parts = rawTargetName.split(" to ");
-      isolatedDestination = parts[parts.length - 1].trim(); 
+    // STEP 1: STRICT SPLITTING (Forces it to look ONLY at the right side of the arrow/dash)
+    if (rawTargetName.includes(" -> ")) {
+      isolatedDestination = rawTargetName.split(" -> ").pop() || isolatedDestination;
+    } else if (rawTargetName.includes("->")) {
+      isolatedDestination = rawTargetName.split("->").pop() || isolatedDestination;
+    } else if (rawTargetName.includes(" to ")) {
+      isolatedDestination = rawTargetName.split(" to ").pop() || isolatedDestination;
     } else if (rawTargetName.includes("-")) {
-      const parts = rawTargetName.split("-");
-      isolatedDestination = parts[parts.length - 1].trim();
+      isolatedDestination = rawTargetName.split("-").pop() || isolatedDestination;
     }
+
+    // Clean up any extra spaces or brackets
+    isolatedDestination = isolatedDestination.trim().replace(/[\(\)]/g, '');
 
     let detectedCityKey = "";
     for (const city of Object.keys(travelRegistry)) {
-      if (isolatedDestination.includes(city) || rawTargetName.includes(city)) {
+      // STEP 2: ONLY check the isolated destination. Ignore the full string so "From" address is ignored!
+      if (isolatedDestination.includes(city)) {
         detectedCityKey = city;
         break;
       }
