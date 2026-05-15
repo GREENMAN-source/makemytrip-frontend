@@ -10,17 +10,17 @@ import { useSelector } from "react-redux";
 import InteractiveSelection from '@/components/InteractiveSelection';
 import ReviewSystem from '@/components/ReviewSystem'; 
 
-// --- LIST OF CITIES FOR DYNAMIC DROPDOWN ---
+// --- 1. KOLKATA REMOVED FROM MASTER LIST ---
 const ALL_CITIES = [
   "Chennai, Tamil Nadu", "Mumbai, Maharashtra", "Delhi, NCR", "Bangalore, Karnataka", 
-  "Hyderabad, Telangana", "Kolkata, West Bengal", "Goa", "Pune, Maharashtra", 
+  "Hyderabad, Telangana", "Goa", "Pune, Maharashtra", 
   "Jaipur, Rajasthan", "Kochi, Kerala", "Shimla, Himachal Pradesh", "Coimbatore, Tamil Nadu"
 ];
 
 export default function Home() {
   const [bookingtype, setbookingtype] = useState("flights");
-  const [from, setfrom] = useState("");
-  const [to, setto] = useState("");
+  const [from, setfrom] = useState("Mumbai, Maharashtra"); // Set default to Mumbai
+  const [to, setto] = useState("Pune, Maharashtra");      // Set default to Pune
   const [date, setdate] = useState("");
   const [travelers, settravelers] = useState(1);
   
@@ -41,7 +41,6 @@ export default function Home() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [reviewTarget, setReviewTarget] = useState<{id: string, name: string} | null>(null);
 
-  // --- SMART MOCK DATA ---
   const defaultFlights = [
     { id: "mock-f1", flightName: "Air India AI-202", from: "Delhi, NCR", to: "Mumbai, Maharashtra", departureTime: "2026-05-15T10:00:00", price: 5000 },
     { id: "mock-f2", flightName: "IndiGo 6E-405", from: "Mumbai, Maharashtra", to: "Bangalore, Karnataka", departureTime: "2026-05-16T14:30:00", price: 4500 },
@@ -83,6 +82,7 @@ export default function Home() {
 
   const handleFromChange = (val: string) => {
     setfrom(val);
+    // Suggestion logic will no longer find Kolkata
     setFromSuggestions(val ? ALL_CITIES.filter(c => c.toLowerCase().includes(val.toLowerCase())) : []);
   };
 
@@ -103,13 +103,12 @@ export default function Home() {
         id: f.id, title: `Flight: ${f.flightName}`, subtitle: `${f.from} ➔ ${f.to}`, price: f.price, type: 'FLIGHT'
       }));
 
-      // 🌟 MAGIC TRICK: Generate custom flight if none exist
       if (results.length === 0 && from !== "" && to !== "") {
         results = [{
           id: `custom-flight-${Math.random()}`,
           title: `Flight: MakeMyTour Express`,
           subtitle: `${from} ➔ ${to}`,
-          price: Math.floor(Math.random() * 4000) + 3500, // Random realistic price
+          price: Math.floor(Math.random() * 4000) + 3500,
           type: 'FLIGHT'
         }];
       }
@@ -122,7 +121,6 @@ export default function Home() {
         id: h.id, title: h.hotelName, subtitle: `Location: ${h.location}`, price: h.pricePerNight, type: 'HOTEL'
       }));
 
-      // 🌟 MAGIC TRICK: Generate custom hotel if none exist
       if (results.length === 0 && to !== "") {
         results = [{
           id: `custom-hotel-${Math.random()}`,
@@ -152,18 +150,26 @@ export default function Home() {
   };
 
   const handlePayment = async () => {
+    // --- 2. BOOKING DATA FIX: Ensure Kolkata isn't hardcoded ---
+    const activeUserId = user?.id || user?._id || "user-123";
+    const destinationName = to.split(',')[0].trim();
+
     const bookingData = {
-      userId: user?.id || "user-123",
+      userId: activeUserId,
       serviceType: selectedTrip.type || "OTHER",
-      targetName: selectedTrip.title + " (" + selectedTrip.subtitle + ")", // Now saves full custom route
+      // Clean identifier for the AI: Only focus on the Destination
+      targetName: `Travel to ${destinationName} (${selectedTrip.title})`, 
       totalAmount: finalPrice,
       selectionId: finalSelection || "Standard",
-      refundStatus: "ACTIVE"
+      refundStatus: "ACTIVE",
+      createdAt: new Date().toISOString()
     };
 
     try {
       await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bookingData)
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(bookingData)
       });
       alert(`Payment Successful!`);
       router.push('/profile'); 
@@ -226,12 +232,12 @@ export default function Home() {
           </div>
           
           <div className="mt-10">
-            <h2 className="text-xl font-bold mb-6 text-white drop-shadow-md">Available Results</h2>
+            <h2 className="text-xl font-bold mb-6 text-slate-800 drop-shadow-sm">Available Results</h2>
             {searchresults.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {searchresults.map((result) => (
-                  <div key={result.id} className="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 hover:scale-[1.02] transition-transform">
-                    <h3 className="font-black text-xl text-slate-800">{result.title}</h3>
+                  <div key={result.id} className="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 hover:scale-[1.02] transition-transform group">
+                    <h3 className="font-black text-xl text-slate-800 group-hover:text-blue-600 transition-colors">{result.title}</h3>
                     <p className="text-slate-500 text-xs font-bold mt-1 uppercase tracking-wider">{result.subtitle}</p>
                     <p className="text-3xl font-black mt-4 text-blue-600">₹{result.price}</p>
                     <div className="flex gap-3 mt-6">
@@ -245,14 +251,13 @@ export default function Home() {
               </div>
             ) : (
               <div className="bg-black/20 backdrop-blur-md p-10 rounded-[40px] border border-white/20 text-center">
-                 <p className="text-white text-lg font-bold">Use the search bar above to explore destinations</p>
+                  <p className="text-white text-lg font-bold uppercase tracking-widest">Explore Your Next Destination</p>
               </div>
             )}
           </div>
         </div>
       </main>
 
-      {/* REVIEWS MODAL */}
       {reviewTarget && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <div className="bg-white rounded-[40px] max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -264,14 +269,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* CHECKOUT MODALS */}
       {checkoutStep === 1 && selectedTrip && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
            <div className="bg-white p-10 rounded-[50px] max-w-lg w-full shadow-2xl relative my-auto animate-in zoom-in">
               <button onClick={() => setCheckoutStep(0)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-800"><X/></button>
               <div className="text-center mb-8">
-                <span className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">Step 01</span>
-                <h2 className="text-3xl font-black mt-4 text-slate-800">Select Options</h2>
+                <span className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">Select Options</span>
+                <h2 className="text-3xl font-black mt-4 text-slate-800">Finalizing Trip</h2>
                 <p className="text-sm text-slate-400 font-bold mt-2 uppercase">{selectedTrip.title}</p>
               </div>
               <InteractiveSelection type={selectedTrip.type || 'FLIGHT'} onConfirm={handleSelectionConfirm} />
@@ -283,15 +287,15 @@ export default function Home() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
            <div className="bg-white p-12 rounded-[60px] max-w-md w-full shadow-2xl relative animate-in zoom-in">
               <div className="flex justify-between items-center mb-10">
-                 <h2 className="text-3xl font-black text-slate-800">Confirm</h2>
+                 <h2 className="text-3xl font-black text-slate-800 tracking-tighter">Confirmation</h2>
                  <button onClick={() => setCheckoutStep(1)} className="text-sm text-blue-600 font-black">← BACK</button>
               </div>
               <div className="bg-slate-50 p-8 rounded-[40px] mb-10 border border-slate-100">
-                 <div className="flex justify-between mb-3 text-slate-500 font-bold"><span>Total Amount:</span></div>
+                 <div className="flex justify-between mb-3 text-slate-500 font-bold uppercase text-[10px]">Total Amount Payable:</div>
                  <div className="text-5xl font-black text-slate-800 tracking-tighter">₹{finalPrice}</div>
               </div>
               <Button onClick={handlePayment} className="w-full py-8 text-xl rounded-[30px] font-black shadow-2xl shadow-blue-200">
-                <Shield size={24} className="mr-2"/> CONFIRM PAYMENT
+                <Shield size={24} className="mr-2"/> PAY NOW
               </Button>
            </div>
         </div>
