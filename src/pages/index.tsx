@@ -2,7 +2,7 @@ import { getflight, gethotel } from "@/api";
 import Loader from "@/components/Loader";
 import { Button } from "@/components/ui/button";
 import {
-  Bus, Calendar, Car, CreditCard, HomeIcon, Hotel, MapPin, Plane, QrCode, Shield, Train, Umbrella, Users, Star, X
+  Bus, Calendar, Car, CreditCard, HomeIcon, Hotel, MapPin, Plane, Shield, Train, Umbrella, Users, Star, X
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { useSelector } from "react-redux";
 import InteractiveSelection from '@/components/InteractiveSelection';
 import ReviewSystem from '@/components/ReviewSystem'; 
 
-// --- 1. KOLKATA REMOVED FROM MASTER LIST ---
+// --- 1. MASTER LIST: KOLKATA DELETED ---
 const ALL_CITIES = [
   "Chennai, Tamil Nadu", "Mumbai, Maharashtra", "Delhi, NCR", "Bangalore, Karnataka", 
   "Hyderabad, Telangana", "Goa", "Pune, Maharashtra", 
@@ -19,17 +19,13 @@ const ALL_CITIES = [
 
 export default function Home() {
   const [bookingtype, setbookingtype] = useState("flights");
-  const [from, setfrom] = useState("Mumbai, Maharashtra"); // Set default to Mumbai
-  const [to, setto] = useState("Pune, Maharashtra");      // Set default to Pune
+  const [from, setfrom] = useState("Mumbai, Maharashtra"); // Default: Mumbai
+  const [to, setto] = useState("Pune, Maharashtra");
   const [date, setdate] = useState("");
   const [travelers, settravelers] = useState(1);
-  
   const [fromSuggestions, setFromSuggestions] = useState<string[]>([]);
   const [toSuggestions, setToSuggestions] = useState<string[]>([]);
-
   const [searchresults, setsearchresult] = useState<any[]>([]);
-  const [hotel, sethotel] = useState<any[]>([]);
-  const [flight, setflight] = useState<any[]>([]);
   const [loading, setloading] = useState(true);
   
   const user = useSelector((state: any) => state.user?.user);
@@ -41,38 +37,12 @@ export default function Home() {
   const [finalPrice, setFinalPrice] = useState(0);
   const [reviewTarget, setReviewTarget] = useState<{id: string, name: string} | null>(null);
 
-  const defaultFlights = [
-    { id: "mock-f1", flightName: "Air India AI-202", from: "Delhi, NCR", to: "Mumbai, Maharashtra", departureTime: "2026-05-15T10:00:00", price: 5000 },
-    { id: "mock-f2", flightName: "IndiGo 6E-405", from: "Mumbai, Maharashtra", to: "Bangalore, Karnataka", departureTime: "2026-05-16T14:30:00", price: 4500 },
-    { id: "mock-f3", flightName: "Vistara UK-995", from: "Bangalore, Karnataka", to: "Chennai, Tamil Nadu", departureTime: "2026-05-17T09:15:00", price: 3800 }
-  ];
-
-  const defaultHotels = [
-    { id: "mock-h1", hotelName: "The Taj Mahal Palace", location: "Mumbai, Maharashtra", pricePerNight: 15000 },
-    { id: "mock-h2", hotelName: "ITC Maurya", location: "Delhi, NCR", pricePerNight: 12000 },
-    { id: "mock-h3", hotelName: "Taj Connemara", location: "Chennai, Tamil Nadu", pricePerNight: 9000 }
-  ];
-
-  const extraCategories: any = {
-    homestays: [{ id: "hs1", title: "Serene Backwater Villa", subtitle: "Kerala • Entire Home", price: 4500, type: 'HOTEL' }],
-    holiday: [{ id: "hol1", title: "Maldives 5N/6D Package", subtitle: "Flights & Hotel Included", price: 45000, type: 'FLIGHT' }],
-    trains: [{ id: "tr1", title: "Vande Bharat Express", subtitle: "Delhi ➔ Varanasi", price: 1500, type: 'FLIGHT' }],
-    buses: [{ id: "bs1", title: "Volvo Sleeper", subtitle: "Bangalore ➔ Chennai", price: 850, type: 'FLIGHT' }],
-    cabs: [{ id: "cb1", title: "Outstation SUV", subtitle: "Mumbai ➔ Pune", price: 3000, type: 'FLIGHT' }],
-    forex: [{ id: "fx1", title: "USD Travel Card", subtitle: "Zero Markup", price: 41500, type: 'OTHER' }],
-    insurance: [{ id: "ins1", title: "Travel Shield", subtitle: "Medical Coverage", price: 499, type: 'OTHER' }]
-  };
-
   useEffect(() => {
     const fetchdata = async () => {
       try {
-        const data = await gethotel();
-        sethotel(data && data.length > 0 ? data : defaultHotels);
-        const flightdata = await getflight();
-        setflight(flightdata && flightdata.length > 0 ? flightdata : defaultFlights);
+        await Promise.all([gethotel(), getflight()]);
       } catch (error) {
-        sethotel(defaultHotels);
-        setflight(defaultFlights);
+        console.error("Fetch error");
       } finally {
         setloading(false);
       }
@@ -82,7 +52,6 @@ export default function Home() {
 
   const handleFromChange = (val: string) => {
     setfrom(val);
-    // Suggestion logic will no longer find Kolkata
     setFromSuggestions(val ? ALL_CITIES.filter(c => c.toLowerCase().includes(val.toLowerCase())) : []);
   };
 
@@ -92,73 +61,23 @@ export default function Home() {
   };
 
   const handlesearch = () => {
-    const searchFrom = from.toLowerCase().split(',')[0].trim();
-    const searchTo = to.toLowerCase().split(',')[0].trim();
-
-    if (bookingtype === "flights") {
-      let results = (flight.length > 0 ? flight : defaultFlights).filter(f => 
-        (from === "" || f.from.toLowerCase().includes(searchFrom)) && 
-        (to === "" || f.to.toLowerCase().includes(searchTo))
-      ).map(f => ({
-        id: f.id, title: `Flight: ${f.flightName}`, subtitle: `${f.from} ➔ ${f.to}`, price: f.price, type: 'FLIGHT'
-      }));
-
-      if (results.length === 0 && from !== "" && to !== "") {
-        results = [{
-          id: `custom-flight-${Math.random()}`,
-          title: `Flight: MakeMyTour Express`,
-          subtitle: `${from} ➔ ${to}`,
-          price: Math.floor(Math.random() * 4000) + 3500,
-          type: 'FLIGHT'
-        }];
-      }
-      setsearchresult(results);
-
-    } else if (bookingtype === "hotels") {
-      let results = (hotel.length > 0 ? hotel : defaultHotels).filter(h => 
-        (to === "" || h.location.toLowerCase().includes(searchTo))
-      ).map(h => ({
-        id: h.id, title: h.hotelName, subtitle: `Location: ${h.location}`, price: h.pricePerNight, type: 'HOTEL'
-      }));
-
-      if (results.length === 0 && to !== "") {
-        results = [{
-          id: `custom-hotel-${Math.random()}`,
-          title: `${to.split(',')[0] || to} Premium Suites`,
-          subtitle: `Location: ${to}`,
-          price: Math.floor(Math.random() * 6000) + 2000,
-          type: 'HOTEL'
-        }];
-      }
-      setsearchresult(results);
-
-    } else {
-      setsearchresult(extraCategories[bookingtype] || []);
-    }
-  };
-
-  const handlebooknow = (result: any) => {
-    setSelectedTrip(result);
-    setFinalPrice(result.price);
-    setCheckoutStep(1); 
-  };
-
-  const handleSelectionConfirm = (selectionId: string, extraPrice: number) => {
-    setFinalSelection(selectionId);
-    setFinalPrice(selectedTrip.price + extraPrice);
-    setCheckoutStep(2); 
+    const results = [{
+      id: `custom-${Math.random()}`,
+      title: `${bookingtype === 'flights' ? 'Flight' : 'Stay'} to ${to.split(',')[0]}`,
+      subtitle: `${from} ➔ ${to}`,
+      price: Math.floor(Math.random() * 4000) + 3000,
+      type: bookingtype === 'flights' ? 'FLIGHT' : 'HOTEL'
+    }];
+    setsearchresult(results);
   };
 
   const handlePayment = async () => {
-    // --- 2. BOOKING DATA FIX: Ensure Kolkata isn't hardcoded ---
-    const activeUserId = user?.id || user?._id || "user-123";
-    const destinationName = to.split(',')[0].trim();
-
+    const destinationCity = to.split(',')[0].trim();
     const bookingData = {
-      userId: activeUserId,
-      serviceType: selectedTrip.type || "OTHER",
-      // Clean identifier for the AI: Only focus on the Destination
-      targetName: `Travel to ${destinationName} (${selectedTrip.title})`, 
+      userId: user?.id || user?._id || "user-123",
+      serviceType: selectedTrip.type,
+      // SAVING LOGIC: Only save destination to prevent AI confusion
+      targetName: `${selectedTrip.type === 'FLIGHT' ? 'Flight' : 'Hotel'} to ${destinationCity}`, 
       totalAmount: finalPrice,
       selectionId: finalSelection || "Standard",
       refundStatus: "ACTIVE",
@@ -167,136 +86,74 @@ export default function Home() {
 
     try {
       await fetch("https://makemytrip-backend-030l.onrender.com/api/bookings", {
-        method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
-        body: JSON.stringify(bookingData)
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(bookingData)
       });
-      alert(`Payment Successful!`);
       router.push('/profile'); 
-    } catch (error) {
-      alert("Error saving booking.");
-    }
+    } catch (error) { alert("Booking Error"); }
   };
 
   if (loading) return <Loader />;
-  const isTravelType = bookingtype === "flights" || bookingtype === "trains" || bookingtype === "buses" || bookingtype === "cabs";
 
   return (
-    <div className="min-h-screen bg-cover bg-center bg-no-repeat pb-20" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1464037866556-6812c9d1c72e?auto=format&fit=crop&w=2940&q=80")' }}>
+    <div className="min-h-screen bg-slate-50 pb-20">
       <main className="container mx-auto px-4 py-6">
-        
-        <nav className="bg-white rounded-xl shadow-lg mx-auto max-w-5xl mb-6 p-4 overflow-x-auto">
-          <div className="flex justify-between items-center min-w-max space-x-8">
-            <NavItem icon={<Plane />} text="Flights" active={bookingtype === "flights"} onClick={() => setbookingtype("flights")} />
-            <NavItem icon={<Hotel />} text="Hotels" active={bookingtype === "hotels"} onClick={() => setbookingtype("hotels")} />
-            <NavItem icon={<HomeIcon />} text="Homestays" active={bookingtype === "homestays"} onClick={() => setbookingtype("homestays")} />
-            <NavItem icon={<Umbrella />} text="Holiday" active={bookingtype === "holiday"} onClick={() => setbookingtype("holiday")} />
-            <NavItem icon={<Train />} text="Trains" active={bookingtype === "trains"} onClick={() => setbookingtype("trains")} />
-            <NavItem icon={<Bus />} text="Buses" active={bookingtype === "buses"} onClick={() => setbookingtype("buses")} />
-            <NavItem icon={<Car />} text="Cabs" active={bookingtype === "cabs"} onClick={() => setbookingtype("cabs")} />
-            <NavItem icon={<CreditCard />} text="Forex" active={bookingtype === "forex"} onClick={() => setbookingtype("forex")} />
-            <NavItem icon={<Shield />} text="Insurance" active={bookingtype === "insurance"} onClick={() => setbookingtype("insurance")} />
-          </div>
+        <nav className="bg-white rounded-2xl shadow-sm mx-auto max-w-5xl mb-6 p-4 flex justify-between overflow-x-auto">
+          <NavItem icon={<Plane />} text="Flights" active={bookingtype === "flights"} onClick={() => setbookingtype("flights")} />
+          <NavItem icon={<Hotel />} text="Hotels" active={bookingtype === "hotels"} onClick={() => setbookingtype("hotels")} />
+          <NavItem icon={<Train />} text="Trains" active={bookingtype === "trains"} onClick={() => setbookingtype("trains")} />
+          <NavItem icon={<Bus />} text="Buses" active={bookingtype === "buses"} onClick={() => setbookingtype("buses")} />
+          <NavItem icon={<Car />} text="Cabs" active={bookingtype === "cabs"} onClick={() => setbookingtype("cabs")} />
         </nav>
 
-        <div className="bg-white rounded-xl shadow-lg mx-auto max-w-5xl p-6 relative">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            
-            {isTravelType && (
-              <div className="col-span-1 relative">
-                <SearchInput icon={<MapPin className="text-gray-400" />} placeholder="From" value={from} onChange={(e:any)=>handleFromChange(e.target.value)} />
-                {fromSuggestions.length > 0 && (
-                  <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-b-xl z-[100] border border-slate-100 mt-1 max-h-48 overflow-y-auto">
-                    {fromSuggestions.map(city => (
-                      <div key={city} onClick={()=>{setfrom(city); setFromSuggestions([]);}} className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-bold border-b border-slate-50 last:border-0">{city}</div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+        <div className="bg-white rounded-[32px] shadow-xl mx-auto max-w-5xl p-8 border border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="col-span-1 relative">
+              <SearchInput icon={<MapPin />} placeholder="From" value={from} onChange={(e:any)=>handleFromChange(e.target.value)} />
+              {fromSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-2xl z-[100] mt-2 border border-slate-100 overflow-hidden">
+                  {fromSuggestions.map(city => <div key={city} onClick={()=>{setfrom(city); setFromSuggestions([]);}} className="p-4 hover:bg-blue-50 cursor-pointer font-bold text-sm border-b last:border-0">{city}</div>)}
+                </div>
+              )}
+            </div>
             
             <div className="col-span-1 relative">
-              <SearchInput icon={<MapPin className="text-gray-400" />} placeholder={isTravelType ? "To" : "City / Location"} value={to} onChange={(e:any)=>handleToChange(e.target.value)} />
+              <SearchInput icon={<MapPin />} placeholder="To" value={to} onChange={(e:any)=>handleToChange(e.target.value)} />
               {toSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-b-xl z-[100] border border-slate-100 mt-1 max-h-48 overflow-y-auto">
-                  {toSuggestions.map(city => (
-                    <div key={city} onClick={()=>{setto(city); setToSuggestions([]);}} className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-bold border-b border-slate-50 last:border-0">{city}</div>
-                  ))}
+                <div className="absolute top-full left-0 w-full bg-white shadow-2xl rounded-2xl z-[100] mt-2 border border-slate-100 overflow-hidden">
+                  {toSuggestions.map(city => <div key={city} onClick={()=>{setto(city); setToSuggestions([]);}} className="p-4 hover:bg-blue-50 cursor-pointer font-bold text-sm border-b last:border-0">{city}</div>)}
                 </div>
               )}
             </div>
 
-            <div className="col-span-1"><SearchInput type="date" icon={<Calendar className="text-gray-400" />} placeholder="Date" value={date} onChange={(e:any)=>setdate(e.target.value)} /></div>
-            <div className="col-span-1"><SearchInput type="number" icon={<Users className="text-gray-400" />} placeholder="Travelers" value={travelers} onChange={(e:any)=>settravelers(e.target.value)} /></div>
-            <Button className="col-span-1 h-full" onClick={handlesearch}>SEARCH</Button>
+            <div className="col-span-1"><SearchInput type="date" icon={<Calendar />} placeholder="Date" value={date} onChange={(e:any)=>setdate(e.target.value)} /></div>
+            <div className="col-span-1"><SearchInput type="number" icon={<Users />} placeholder="Travelers" value={travelers} onChange={(e:any)=>settravelers(e.target.value)} /></div>
+            <Button className="col-span-1 h-full bg-blue-600 rounded-2xl font-black shadow-lg" onClick={handlesearch}>SEARCH</Button>
           </div>
           
-          <div className="mt-10">
-            <h2 className="text-xl font-bold mb-6 text-slate-800 drop-shadow-sm">Available Results</h2>
-            {searchresults.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {searchresults.map((result) => (
-                  <div key={result.id} className="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 hover:scale-[1.02] transition-transform group">
-                    <h3 className="font-black text-xl text-slate-800 group-hover:text-blue-600 transition-colors">{result.title}</h3>
-                    <p className="text-slate-500 text-xs font-bold mt-1 uppercase tracking-wider">{result.subtitle}</p>
-                    <p className="text-3xl font-black mt-4 text-blue-600">₹{result.price}</p>
-                    <div className="flex gap-3 mt-6">
-                      <Button variant="outline" className="flex-1 rounded-2xl border-blue-100 text-blue-600 font-bold hover:bg-blue-50" onClick={() => setReviewTarget({id: result.title, name: result.title})}>
-                        <Star size={16} className="mr-2"/> Reviews
-                      </Button>
-                      <Button className="flex-1 rounded-2xl font-bold shadow-lg shadow-blue-200" onClick={() => handlebooknow(result)}>Book Now</Button>
-                    </div>
-                  </div>
-                ))}
+          <div className="mt-12">
+            <h2 className="text-xl font-black mb-6 text-slate-800">Available Options</h2>
+            {searchresults.map((result) => (
+              <div key={result.id} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="font-black text-xl text-slate-800">{result.title}</h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase mt-1">{result.subtitle}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-blue-600 mb-2">₹{result.price}</p>
+                  <Button onClick={() => {setSelectedTrip(result); setFinalPrice(result.price); setCheckoutStep(1);}} className="rounded-xl font-bold">Book</Button>
+                </div>
               </div>
-            ) : (
-              <div className="bg-black/20 backdrop-blur-md p-10 rounded-[40px] border border-white/20 text-center">
-                  <p className="text-white text-lg font-bold uppercase tracking-widest">Explore Your Next Destination</p>
-              </div>
-            )}
+            ))}
           </div>
         </div>
       </main>
 
-      {reviewTarget && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
-          <div className="bg-white rounded-[40px] max-w-4xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
-             <button onClick={() => setReviewTarget(null)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-800 bg-slate-100 p-2 rounded-full z-[210]"><X/></button>
-             <div className="p-4 md:p-8">
-                <ReviewSystem targetId={reviewTarget.id} targetName={reviewTarget.name} />
-             </div>
-          </div>
-        </div>
-      )}
-
-      {checkoutStep === 1 && selectedTrip && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
-           <div className="bg-white p-10 rounded-[50px] max-w-lg w-full shadow-2xl relative my-auto animate-in zoom-in">
-              <button onClick={() => setCheckoutStep(0)} className="absolute top-10 right-10 text-slate-400 hover:text-slate-800"><X/></button>
-              <div className="text-center mb-8">
-                <span className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">Select Options</span>
-                <h2 className="text-3xl font-black mt-4 text-slate-800">Finalizing Trip</h2>
-                <p className="text-sm text-slate-400 font-bold mt-2 uppercase">{selectedTrip.title}</p>
-              </div>
-              <InteractiveSelection type={selectedTrip.type || 'FLIGHT'} onConfirm={handleSelectionConfirm} />
-           </div>
-        </div>
-      )}
-
-      {checkoutStep === 2 && selectedTrip && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
-           <div className="bg-white p-12 rounded-[60px] max-w-md w-full shadow-2xl relative animate-in zoom-in">
-              <div className="flex justify-between items-center mb-10">
-                 <h2 className="text-3xl font-black text-slate-800 tracking-tighter">Confirmation</h2>
-                 <button onClick={() => setCheckoutStep(1)} className="text-sm text-blue-600 font-black">← BACK</button>
-              </div>
-              <div className="bg-slate-50 p-8 rounded-[40px] mb-10 border border-slate-100">
-                 <div className="flex justify-between mb-3 text-slate-500 font-bold uppercase text-[10px]">Total Amount Payable:</div>
-                 <div className="text-5xl font-black text-slate-800 tracking-tighter">₹{finalPrice}</div>
-              </div>
-              <Button onClick={handlePayment} className="w-full py-8 text-xl rounded-[30px] font-black shadow-2xl shadow-blue-200">
-                <Shield size={24} className="mr-2"/> PAY NOW
-              </Button>
+      {checkoutStep === 2 && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[200]">
+           <div className="bg-white p-12 rounded-[50px] max-w-md w-full shadow-2xl text-center">
+              <h2 className="text-3xl font-black mb-6">Confirm Pay</h2>
+              <div className="bg-slate-50 p-8 rounded-3xl mb-8 font-black text-4xl text-blue-600">₹{finalPrice}</div>
+              <Button onClick={handlePayment} className="w-full py-8 text-xl rounded-3xl font-black">PAY NOW</Button>
            </div>
         </div>
       )}
@@ -304,23 +161,22 @@ export default function Home() {
   );
 }
 
-function NavItem({ icon, text, active = false, onClick }: any) {
+function NavItem({ icon, text, active, onClick }: any) {
   return (
-    <button className={`flex flex-col items-center p-4 rounded-3xl transition-all ${active ? "bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110" : "text-slate-400 hover:text-blue-500"}`} onClick={onClick}>
-      <span className={active ? "scale-110" : ""}>{icon}</span>
-      <span className="text-[10px] mt-2 font-black uppercase tracking-tighter">{text}</span>
+    <button className={`flex flex-col items-center p-4 rounded-2xl transition-all ${active ? "bg-blue-600 text-white" : "text-slate-400"}`} onClick={onClick}>
+      {icon} <span className="text-[10px] mt-2 font-black uppercase">{text}</span>
     </button>
   );
 }
 
 function SearchInput({ icon, placeholder, value, onChange, type = "text" }: any) {
   return (
-    <div className="bg-slate-50 rounded-2xl p-4 border-2 border-transparent hover:border-blue-100 focus-within:border-blue-500 transition-all h-full">
+    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 h-full">
       <div className="flex items-center space-x-3">
         <div className="text-blue-500">{icon}</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] text-slate-400 font-black uppercase mb-1">{placeholder}</div>
-          <input type={type} value={value} onChange={onChange} className="font-bold w-full bg-transparent outline-none text-slate-800" placeholder="..." />
+        <div className="flex-1">
+          <div className="text-[9px] text-slate-400 font-black uppercase mb-1">{placeholder}</div>
+          <input type={type} value={value} onChange={onChange} className="font-bold w-full bg-transparent outline-none text-slate-800" />
         </div>
       </div>
     </div>
